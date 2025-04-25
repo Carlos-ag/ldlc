@@ -14,6 +14,7 @@ import io
 import traceback # For detailed error printing
 import json # For history store
 import os # Added to make file path relative
+from flask import Response # <<< Import Flask Response for the ping endpoint >>>
 
 # --- Parameters for WiFi N=648, R=5/6 ---
 EXPECTED_N = 648; EXPECTED_K = 540; EXPECTED_M = 108; EXPECTED_RATE = 5/6
@@ -372,7 +373,6 @@ def decode_llrbp_for_dash(noisy_codeword, H, var_neighbors, chk_neighbors, max_i
     # Return the last computed codeword and the full history
     return history, current_decoded_codeword, iters_done
 
-
 # --- Image Figure Helper ---
 def create_image_fig(image_array, title="Image"):
     if image_array is None or image_array.size == 0:
@@ -495,6 +495,14 @@ app = dash.Dash(__name__,
                 external_stylesheets=[dbc.themes.FLATLY],
                 meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}])
 server = app.server # Expose server variable for Gunicorn
+
+# --- >>> ADD FLASK PING ENDPOINT <<< ---
+@server.route('/ping')
+def ping():
+    """A simple endpoint to keep the Render server alive."""
+    print("Received /ping request") # Optional: Log ping requests
+    return Response("pong", status=200)
+# --- >>> END PING ENDPOINT <<< ---
 
 # --- Create Initial Figures (Handle potential None LDPC_PARAMS_GLOBAL) ---
 print("Creating initial figures for layout...")
