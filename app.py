@@ -491,4 +491,4 @@ if __name__ == '__main__':
 
     print(f"Successfully loaded LDPC parameters from '{ALIST_FILENAME}'.")
     print(f"Starting Dash server on http://127.0.0.1:8050/ ...")
-    # app.run(debug=True, port=8050) # Use standard port 8050
+    app.run(debug=True, port=8050) # Use standard port 8050
