@@ -1270,7 +1270,6 @@ def update_simulation(n_clicks, pattern, noise_prob, max_iter, seed_val):
     [State('history-store', 'data'), State('orig-image-store', 'data')]
 )
 def update_displayed_iteration(drag_value, value, history_data, orig_image_list_data):
-    # ... (Unchanged - safe to keep) ...
     selected_iter = drag_value if drag_value is not None else value
     default_info_text = "Syndrome W: N/A | Img Errors: N/A"
     if (selected_iter is None or history_data is None or orig_image_list_data is None
@@ -1289,22 +1288,27 @@ def update_displayed_iteration(drag_value, value, history_data, orig_image_list_
     info_text = f"Syndrome W: {syndrome_weight_iter} | Img Errors: {errors_iter}"
     return fig_decoded_iter, label_text, info_text
 
-# --- Run the App ---
+
+# --- Parse ALIST Data on Module Load ---
+# This code now runs when the script is imported by Gunicorn OR run directly
+print(f"Attempting to parse embedded ALIST string on module load...")
+LDPC_PARAMS_GLOBAL = parse_alist_string(wifi_648_r083_alist_content) # Use the string variable
+
+if LDPC_PARAMS_GLOBAL is None:
+     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+     print("ERROR: Failed to load or parse LDPC parameters from embedded string.")
+     print("Ensure 'wifi_648_r083_alist_content' is correctly pasted.")
+     print("Application cannot start. Exiting.")
+     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+     sys.exit(1) # Exit if parameters fail to load - app is useless without them
+
+print(f"Successfully loaded LDPC parameters from embedded ALIST string.")
+print(f"LDPC Params Keys: {list(LDPC_PARAMS_GLOBAL.keys())}") # Add a check print
+
+
+# --- Run Development Server (Only when executed directly) ---
 if __name__ == '__main__':
-    # Parse ALIST from embedded string on startup
-    print(f"Attempting to parse embedded ALIST string on startup...")
-    LDPC_PARAMS_GLOBAL = parse_alist_string(wifi_648_r083_alist_content) # Use the string variable
-
-    if LDPC_PARAMS_GLOBAL is None:
-         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-         print("ERROR: Failed to load or parse LDPC parameters from embedded string.")
-         print("Ensure 'wifi_648_r083_alist_content' is correctly pasted.")
-         print("Exiting.")
-         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-         sys.exit(1)
-
-    print(f"Successfully loaded LDPC parameters from embedded ALIST string.")
     print(f"Starting Dash server for local development on http://127.0.0.1:8050/ ...")
-    # debug=True enables hot reloading, useful for development but should be False in production
-    # host='0.0.0.0' might be needed for some environments, but 127.0.0.1 is standard for local
-    app.run(debug=True, port=8050) # Standard port 8050 for local dev
+    # debug=True should be False in production, but OK for testing Render deploy
+    # host='0.0.0.0' makes it accessible on the network, often needed for containers/servers
+    app.run(debug=False, port=8050, host='0.0.0.0') # Use host='0.0.0.0' and disable debug for deployment testing
