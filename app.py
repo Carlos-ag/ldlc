@@ -927,4 +927,4 @@ if __name__ == '__main__':
     print("-" * 50)
     # Set debug=False for a production-like test, or True for development features (like hot-reloading)
     # Use host='0.0.0.0' to make it accessible on your local network if needed
-    app.run(debug=False, port=8050, host='127.0.0.1')
+    # app.run(debug=False, port=8050, host='127.0.0.1')
