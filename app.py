@@ -25,10 +25,42 @@ LDPC_PARAMS_GLOBAL = None
 
 # --- ALIST Parser Function ---
 def parse_alist_file(filename):
-    # ... (Unchanged) ...
     ldpc_params = {}
+    # Construct absolute path relative to this script file
     try:
-        with open(filename, 'r') as f: lines = f.readlines()
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        abs_file_path = os.path.join(script_dir, filename)
+
+        print(f"--- DEBUG: Inside parse_alist_file ---", flush=True) # flush=True helps on some platforms
+        print(f"--- DEBUG: Script directory (__file__): {__file__}", flush=True)
+        print(f"--- DEBUG: Absolute script directory: {script_dir}", flush=True)
+        print(f"--- DEBUG: Trying to open ALIST file at: {abs_file_path}", flush=True)
+        print(f"--- DEBUG: Current working directory: {os.getcwd()}", flush=True)
+        try:
+            print(f"--- DEBUG: Files in script directory ({script_dir}): {os.listdir(script_dir)}", flush=True)
+        except Exception as list_err:
+            print(f"--- DEBUG: Error listing script directory: {list_err}", flush=True)
+
+    except Exception as path_err:
+         print(f"--- DEBUG: CRITICAL ERROR constructing path: {path_err}", flush=True)
+         traceback.print_exc()
+         return None # Cannot proceed if path construction fails
+
+    try:
+        # Ensure the file exists before trying to open
+        print(f"--- DEBUG: Checking existence of: {abs_file_path}", flush=True)
+        if not os.path.exists(abs_file_path):
+            # Explicitly raise FileNotFoundError if os.path.exists fails
+            print(f"--- DEBUG: os.path.exists returned False for {abs_file_path}", flush=True)
+            raise FileNotFoundError(f"ALIST file not found at {abs_file_path} (checked with os.path.exists)")
+        else:
+             print(f"--- DEBUG: os.path.exists returned True.", flush=True)
+
+
+        with open(abs_file_path, 'r') as f: lines = f.readlines()
+        print(f"--- DEBUG: Successfully opened and read {abs_file_path}", flush=True) # Add success print
+
+        # --- Rest of your original parsing logic ---
         n, m = map(int, lines[0].strip().split())
         max_col_weight_hdr, max_row_weight_hdr = map(int, lines[1].strip().split())
         vnode_deg_list = list(map(int, lines[2].strip().split()))
@@ -46,15 +78,28 @@ def parse_alist_file(filename):
             for cn_idx in check_nodes_0based:
                  if cn_idx < m: chk_node_conn_tmp[cn_idx].append(col_idx)
         data = np.ones(len(rows_H), dtype=int); H_coo = sp.coo_matrix((data, (rows_H, cols_H)), shape=(m, n)); H_csc = H_coo.tocsc()
-        print(f"Parsed ALIST '{filename}': n={n}, m={m}. H shape={H_csc.shape}, nnz={H_csc.nnz}")
-        if n != EXPECTED_N or m != EXPECTED_M: print(f"!!! WARNING: ALIST dimensions ({n}x{m}) != expected ({EXPECTED_N}x{EXPECTED_M}) !!!")
+        print(f"Parsed ALIST '{filename}': n={n}, m={m}. H shape={H_csc.shape}, nnz={H_csc.nnz}", flush=True) # Keep existing print
         var_neighbors, chk_neighbors = get_neighbors(H_csc) # Pre-calculate neighbors
         ldpc_params = { 'n': n, 'm': m, 'k': n - m, 'H': H_csc, 'var_neighbors': var_neighbors, 'chk_neighbors': chk_neighbors,
                         'max_vnode_deg': max_col_weight_hdr, 'max_cnode_deg': max_row_weight_hdr,
                         'vnode_deg_list': np.array(vnode_deg_list, dtype=int), 'cnode_deg_list': np.array(cnode_deg_list, dtype=int) }
-        return ldpc_params
-    except FileNotFoundError: print(f"Error: ALIST file '{filename}' not found."); return None
-    except Exception as e: print(f"Error parsing ALIST file '{filename}': {e}"); traceback.print_exc(); return None
+        # --- End of original parsing logic ---
+        print(f"--- DEBUG: Successfully parsed. Returning parameters.", flush=True)
+        return ldpc_params # Return statement
+
+    except FileNotFoundError as fnf_err:
+        print(f"--- DEBUG: Caught FileNotFoundError ---", flush=True) # Explicit log for this exception
+        print(f"Error: ALIST file '{filename}' not found. Details: {fnf_err}", flush=True)
+        traceback.print_exc() # Print full traceback for file not found
+        return None
+    except Exception as e:
+        print(f"--- DEBUG: Caught other Exception during parsing ---", flush=True) # Explicit log for other exceptions
+        print(f"Error parsing ALIST file '{filename}': {e}", flush=True)
+        traceback.print_exc()
+        return None
+    finally:
+         # This block might not be reached if return happens earlier, but good practice
+         print(f"--- DEBUG: Exiting parse_alist_file ---", flush=True)
 
 # --- Get Neighbors Function ---
 def get_neighbors(H_sparse):
